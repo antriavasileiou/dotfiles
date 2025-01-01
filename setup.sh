@@ -25,6 +25,8 @@ bindkey '^[[B' history-search-forward
 alias gst="git status"
 alias gc="git commit"
 alias gl="git log"
+alias gaa="git add ."
+alias gp="git push"
 
 # General aliases (optional)
 alias ll="ls -la"
