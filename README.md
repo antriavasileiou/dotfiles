@@ -1,97 +1,130 @@
-# Dotfiles Setup Script
+# Dotfiles
 
-This repository provides a shell script to set up a customized `.zshrc` file with command completions, history search, syntax highlighting, autosuggestions, and Git shortcuts on macOS. The script also installs required dependencies using Homebrew.
+A Zsh configuration for macOS: history search, completions, syntax highlighting,
+autosuggestions, and Git shortcuts. `setup.sh` installs the dependencies and
+symlinks the config into place.
 
-## Features
+## Layout
 
-- **Command Completions and History Search**:
-  - Navigate through command history using up/down arrows based on typed keywords.
+```
+dotfiles/
+├── zshrc       # the config — edit this, it's what ~/.zshrc points at
+├── setup.sh    # installs dependencies and creates the symlink
+└── README.md
+```
 
-- **Git Shortcuts**:
-  - `gst` for `git status`
-  - `gc` for `git commit`
-  - `gl` for `git log`
-
-- **Syntax Highlighting**:
-  - Highlights commands, arguments, paths, and errors in the terminal.
-
-- **Autosuggestions**:
-  - Suggests commands from history as you type.
+`~/.zshrc` is a **symlink** to `zshrc` in this repo, so any change you make to
+your shell config is immediately version-controlled. There is no generated copy
+to keep in sync.
 
 ## Prerequisites
 
-- macOS with Zsh (default on macOS Catalina and later).
-- Homebrew installed. If not, the script will install it.
+- macOS with Zsh (the default since Catalina).
+- Homebrew. If it isn't installed, `setup.sh` installs it for you.
+
+Both Apple Silicon (`/opt/homebrew`) and Intel (`/usr/local`) prefixes are
+supported automatically.
 
 ## Installation
 
-1. Clone this repository or copy the script file `setup_dotfiles.sh`.
+```bash
+git clone <repository-url> ~/projects/dotfiles
+cd ~/projects/dotfiles
+./setup.sh
+exec zsh
+```
 
-   ```bash
-   git clone <repository-url>
-   cd <repository-folder>
-   ```
+The script is safe to re-run. If `~/.zshrc` already exists it is moved to
+`~/.zshrc.backup.<timestamp>` before the symlink is created — nothing is
+overwritten in place.
 
-2. Make the script executable:
+## Features
 
-   ```bash
-   chmod +x setup_dotfiles.sh
-   ```
+### Git shortcuts
 
-3. Run the script:
+| Alias | Command      |
+| ----- | ------------ |
+| `gst` | `git status` |
+| `gc`  | `git commit` |
+| `gl`  | `git log`    |
+| `gaa` | `git add .`  |
+| `gp`  | `git push`   |
 
-   ```bash
-   ./setup_dotfiles.sh
-   ```
+### General shortcuts
 
-4. Restart your terminal to apply the changes.
+| Alias | Command  |
+| ----- | -------- |
+| `ll`  | `ls -la` |
+| `..`  | `cd ..`  |
 
-## How It Works
+### History search
 
-1. **Homebrew Installation**:
-   - If Homebrew is not installed, the script downloads and installs it.
+Type a prefix and press ↑ / ↓ to walk through matching commands — type `mvn`,
+press ↑, and you'll cycle through your previous `mvn` invocations with the
+cursor left at the end of the line.
 
-2. **Dependencies Installation**:
-   - Installs `zsh-syntax-highlighting` and `zsh-autosuggestions` using Homebrew.
+### History behaviour
 
-3. **Dotfile Configuration**:
-   - Creates or updates the `.zshrc` file in the user’s home directory with the following:
-     - Command completions and history search.
-     - Aliases for Git commands.
-     - Syntax highlighting and autosuggestions.
-     - Custom prompt.
+- 50,000 entries, stored in `~/.zsh_history` with timestamps.
+- Shared live across concurrent shell sessions.
+- Consecutive duplicates are dropped, and duplicates are evicted first when the
+  file fills up.
+- A command typed with a leading space is not recorded.
+- History expansions like `!!` are loaded onto the command line for review
+  rather than executed immediately.
 
-4. **Immediate Application**:
-   - Sources the `.zshrc` file to apply changes immediately.
+### Completions
 
-## Example Usage
+Tab completion is case-insensitive, and repeated tabs open a menu you can arrow
+through. Homebrew's completion functions (`git`, `brew`, …) are picked up
+automatically. The completion cache is rebuilt at most once a day, so new shells
+start fast.
 
-- **Command History Search**:
-  - Type `mvn` and press the up arrow to find previous commands starting with `mvn`.
+### Syntax highlighting
 
-- **Git Shortcuts**:
-  - `gst` displays the current Git status.
-  - `gc` opens the Git commit prompt.
-  - `gl` shows the Git log.
+Commands, arguments, paths, and errors are coloured as you type.
 
-- **Autosuggestions**:
-  - As you type, suggested commands from your history will appear in light gray. Press the right arrow or `Ctrl-Space` to accept.
+### Autosuggestions
+
+Suggestions from your history appear in grey ahead of the cursor. Press → or
+`Ctrl-Space` to accept.
 
 ## Customization
 
-Feel free to edit the `.zshrc` file after running the script to add more aliases, environment variables, or further customizations.
+Edit `zshrc` in this repo and run `exec zsh` — the symlink means there's nothing
+to reinstall. Commit when you're happy with it.
+
+For anything machine-specific that shouldn't be committed (work tokens, one-off
+`PATH` entries), create `~/.zshrc.local`. It's sourced at the end of the config
+if it exists and is not tracked by this repo.
 
 ## Troubleshooting
 
-- If syntax highlighting or autosuggestions are not working, ensure the dependencies are correctly installed via Homebrew:
+**Syntax highlighting or autosuggestions not working**
 
-  ```bash
-  brew reinstall zsh-syntax-highlighting zsh-autosuggestions
-  ```
+Confirm the formulae are present and that Homebrew is on your `PATH`:
 
-- Check that your `.zshrc` file sources the plugins correctly.
+```bash
+brew list --formula | grep zsh-
+echo "$HOMEBREW_PREFIX"
+```
+
+If `HOMEBREW_PREFIX` is empty, your shell hasn't picked up Homebrew — start a
+new shell with `exec zsh`, or reinstall the formulae with:
+
+```bash
+brew reinstall zsh-syntax-highlighting zsh-autosuggestions
+```
+
+**Reverting to your previous config**
+
+`setup.sh` leaves backups in place. To restore one:
+
+```bash
+rm ~/.zshrc
+mv ~/.zshrc.backup.<timestamp> ~/.zshrc
+```
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
-
+Available under the [MIT License](LICENSE).

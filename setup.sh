@@ -1,74 +1,80 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Installs shell dependencies and links this repo's `zshrc` to ~/.zshrc.
+# Safe to re-run: an existing ~/.zshrc is backed up, never silently replaced.
 
-# Install Homebrew if not already installed
+set -euo pipefail
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ZSHRC="$DOTFILES_DIR/zshrc"
+TARGET_ZSHRC="$HOME/.zshrc"
+
+if [ ! -f "$SOURCE_ZSHRC" ]; then
+    echo "Error: $SOURCE_ZSHRC not found. Run this script from a full clone of the repo." >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Homebrew
+# ---------------------------------------------------------------------------
 if ! command -v brew &>/dev/null; then
     echo "Homebrew not found. Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    # The installer doesn't touch the current shell's PATH, so load it here.
+    for brew_candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        if [ -x "$brew_candidate" ]; then
+            eval "$("$brew_candidate" shellenv)"
+            break
+        fi
+    done
+fi
+
+if ! command -v brew &>/dev/null; then
+    echo "Error: Homebrew installation did not succeed; cannot continue." >&2
+    exit 1
+fi
+
+echo "Homebrew is available at $(command -v brew)."
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+for formula in zsh-syntax-highlighting zsh-autosuggestions; do
+    if brew list --formula "$formula" &>/dev/null; then
+        echo "$formula is already installed."
+    else
+        echo "Installing $formula..."
+        brew install "$formula"
+    fi
+done
+
+# ---------------------------------------------------------------------------
+# Link the config
+# ---------------------------------------------------------------------------
+if [ -L "$TARGET_ZSHRC" ] && [ "$(readlink "$TARGET_ZSHRC")" = "$SOURCE_ZSHRC" ]; then
+    echo "$TARGET_ZSHRC is already linked to $SOURCE_ZSHRC."
+elif [ -e "$TARGET_ZSHRC" ] || [ -L "$TARGET_ZSHRC" ]; then
+    BACKUP="$TARGET_ZSHRC.backup.$(date +%Y%m%d%H%M%S)"
+    echo "Existing $TARGET_ZSHRC found. Backing it up to $BACKUP."
+    mv "$TARGET_ZSHRC" "$BACKUP"
+    ln -s "$SOURCE_ZSHRC" "$TARGET_ZSHRC"
+    echo "Linked $TARGET_ZSHRC -> $SOURCE_ZSHRC."
 else
-    echo "Homebrew is already installed."
+    ln -s "$SOURCE_ZSHRC" "$TARGET_ZSHRC"
+    echo "Linked $TARGET_ZSHRC -> $SOURCE_ZSHRC."
 fi
 
-# Install dependencies
-echo "Installing dependencies..."
-brew install zsh-syntax-highlighting zsh-autosuggestions
+# ---------------------------------------------------------------------------
+# Done
+# ---------------------------------------------------------------------------
+# Note: this script runs under bash, so it can't source the zsh config itself.
+cat <<'MSG'
 
-# Create or overwrite the .zshrc file
-ZSHRC="$HOME/.zshrc"
+Dotfile setup complete.
 
-cat >"$ZSHRC" <<'EOF'
-# Enable command completions and history search
-autoload -Uz compinit && compinit
-bindkey '^[[A' history-search-backward
-bindkey '^[[B' history-search-forward
+Start a new shell to pick up the changes:
 
-# Custom aliases for Git shortcuts
-alias gst="git status"
-alias gc="git commit"
-alias gl="git log"
-alias gaa="git add ."
-alias gp="git push"
+    exec zsh
 
-# General aliases (optional)
-alias ll="ls -la"
-alias ..="cd .."
-
-# Better history control
-export HISTFILE=~/.zsh_history
-export HISTSIZE=10000
-export SAVEHIST=10000
-setopt HIST_IGNORE_DUPS  # Ignore duplicate commands
-setopt SHARE_HISTORY     # Share history across sessions
-
-# Load completions for Git (if not already available)
-if type _git &>/dev/null; then
-    autoload -Uz compinit && compinit
-    zstyle ':completion:*:*:git:*' script ~/.zshrc
-fi
-
-# Source Homebrew shell completions (if installed)
-if [ -f /opt/homebrew/etc/profile.d/bash_completion.sh ]; then
-    . /opt/homebrew/etc/profile.d/bash_completion.sh
-fi
-
-# zsh-syntax-highlighting: Highlight commands and syntax
-if [ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
-    source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-fi
-
-# zsh-autosuggestions: Suggest commands from history as you type
-if [ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
-    source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-    bindkey '^ ' autosuggest-accept  # Bind Ctrl-Space to accept suggestion
-fi
-
-# Prompt customization (with colors)
-PROMPT='%F{cyan}%n@%m %F{blue}%~%f %# '
-EOF
-
-echo "Configuration written to $ZSHRC."
-
-# Apply the changes
-echo "Sourcing $ZSHRC..."
-source "$ZSHRC"
-
-echo "Dotfile setup complete! Restart your terminal to ensure all changes take effect."
+MSG
