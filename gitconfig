@@ -1,0 +1,66 @@
+# ~/.gitconfig — managed by the dotfiles repo.
+#
+# Identity lives in ~/.gitconfig.local (untracked) so this file can be shared
+# publicly without leaking an email address. See the [include] at the bottom.
+
+[init]
+	defaultBranch = main
+
+[push]
+	# Create the upstream branch on first push instead of erroring out with
+	# "use --set-upstream".
+	autoSetupRemote = true
+	followTags = true
+
+[pull]
+	# Rebase local commits on top of the remote instead of creating a merge
+	# commit every time you pull.
+	rebase = true
+
+[fetch]
+	# Delete local refs for branches that were deleted on the remote.
+	prune = true
+
+[rebase]
+	autoStash = true
+	autoSquash = true
+
+[merge]
+	# Show the original text alongside both sides in a conflict, rather than
+	# just the two conflicting versions.
+	conflictStyle = zdiff3
+
+[rerere]
+	# Remember how you resolved a conflict and replay it if the same one shows
+	# up again — pays for itself on any long-running rebase.
+	enabled = true
+	autoUpdate = true
+
+[diff]
+	# Produces noticeably more readable diffs than the default algorithm.
+	algorithm = histogram
+	colorMoved = zebra
+	mnemonicPrefix = true
+
+[log]
+	date = iso
+
+[branch]
+	sort = -committerdate
+
+[column]
+	ui = auto
+
+[core]
+	excludesfile = ~/.gitignore_global
+
+[color]
+	ui = auto
+
+[help]
+	# Wait 1s then run the corrected command on a typo, instead of only hinting.
+	autocorrect = 10
+
+# Machine-specific settings and identity. Not tracked by this repo.
+[include]
+	path = ~/.gitconfig.local

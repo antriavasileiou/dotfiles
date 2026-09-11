@@ -1,0 +1,16 @@
+# Applies to every repo on this machine, via core.excludesfile in gitconfig.
+# Use this for editor/OS noise — keep project-specific ignores in the project.
+
+# macOS
+.DS_Store
+.AppleDouble
+._*
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env.local
